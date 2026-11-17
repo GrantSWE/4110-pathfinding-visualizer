@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Interactive C++ and WebAssembly pathfinding algorithm visualizer for CSCE 4110.">
+    <title>Pathfinding Visualizer | CSCE 4110</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="site-header">
+            <div class="brand-lockup">
+                <div class="brand-mark" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div>
+                    <p class="eyebrow">CSCE 4110 · Algorithms</p>
+                    <h1>Pathfinding Visualizer</h1>
+                    <p class="header-copy">Explore how classic search algorithms navigate the same grid.</p>
+                </div>
+            </div>
+            <div class="engine-status" id="engine-status" data-state="loading" role="status" aria-live="polite">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="engine-status-text">Loading C++ engine</span>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="grid-panel" aria-labelledby="grid-heading">
+                <div class="panel-heading grid-heading-row">
+                    <div>
+                        <p class="section-kicker">Interactive workspace</p>
+                        <h2 id="grid-heading">20 × 20 grid</h2>
+                    </div>
+                    <div class="coordinate-readout" id="coordinate-readout" aria-live="polite">
+                        Hover or focus a cell
+                    </div>
+                </div>
+
+                <div class="message-banner" id="message-banner" data-tone="neutral" role="status" aria-live="polite">
+                    <span class="message-icon" aria-hidden="true">●</span>
+                    <span id="message-text">Choose an algorithm, edit the grid, then run the search.</span>
+                </div>
+
+                <div class="grid-frame">
+                    <div
+                        class="pathfinding-grid"
+                        id="pathfinding-grid"
+                        role="grid"
+                        aria-label="Interactive 20 by 20 pathfinding grid"
+                        aria-rowcount="20"
+                        aria-colcount="20"
+                    ></div>
+                </div>
+
+                <div class="legend" aria-label="Grid legend">
+                    <div class="legend-item"><span class="legend-swatch start">S</span><span>Start</span></div>
+                    <div class="legend-item"><span class="legend-swatch destination">D</span><span>Destination</span></div>
+                    <div class="legend-item"><span class="legend-swatch wall"></span><span>Wall</span></div>
+                    <div class="legend-item"><span class="legend-swatch explored"></span><span>Explored</span></div>
+                    <div class="legend-item"><span class="legend-swatch path"></span><span>Final path</span></div>
+                </div>
+            </section>
+
+            <aside class="control-rail" aria-label="Pathfinding controls and results">
+                <section class="control-card" aria-labelledby="controls-heading">
+                    <div class="panel-heading compact">
+                        <div>
+                            <p class="section-kicker">Configuration</p>
+                            <h2 id="controls-heading">Search controls</h2>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="algorithm-select">Algorithm</label>
+                        <div class="select-wrap">
+                            <select id="algorithm-select">
+                                <option value="0">Breadth-First Search</option>
+                                <option value="1">Depth-First Search</option>
+                                <option value="2">Dijkstra's Algorithm</option>
+                                <option value="3">A* Search</option>
+                            </select>
+                        </div>
+                        <p class="algorithm-description" id="algorithm-description"></p>
+                        <div class="algorithm-tags" aria-label="Selected algorithm properties">
+                            <span id="algorithm-strategy">Uninformed</span>
+                            <span id="algorithm-guarantee">Shortest path</span>
+                        </div>
+                    </div>
+
+                    <fieldset class="field-group">
+                        <legend>Editing mode</legend>
+                        <div class="mode-switcher" id="mode-switcher">
+                            <button type="button" class="mode-button active" data-mode="wall" aria-pressed="true">
+                                <span aria-hidden="true">▦</span> Walls
+                            </button>
+                            <button type="button" class="mode-button" data-mode="start" aria-pressed="false">
+                                <span aria-hidden="true">S</span> Start
+                            </button>
+                            <button type="button" class="mode-button" data-mode="destination" aria-pressed="false">
+                                <span aria-hidden="true">D</span> Destination
+                            </button>
+                        </div>
+                    </fieldset>
+
+                    <div class="field-group speed-group">
+                        <div class="label-row">
+                            <label for="speed-control">Animation speed</label>
+                            <output id="speed-output" for="speed-control">Normal · 14 ms</output>
+                        </div>
+                        <input id="speed-control" type="range" min="1" max="3" step="1" value="2">
+                        <div class="range-labels" aria-hidden="true"><span>Slow</span><span>Normal</span><span>Fast</span></div>
+                    </div>
+
+                    <div class="primary-actions">
+                        <button type="button" class="button primary" id="run-button" disabled>
+                            <span class="button-icon" aria-hidden="true">▶</span>
+                            <span>Run algorithm</span>
+                        </button>
+                        <button type="button" class="button secondary" id="reset-button">
+                            Reset visualization
+                        </button>
+                        <button type="button" class="button ghost" id="clear-button">
+                            Clear grid
+                        </button>
+                    </div>
+                </section>
+
+                <section class="metrics-card" aria-labelledby="metrics-heading">
+                    <div class="panel-heading compact metrics-heading">
+                        <div>
+                            <p class="section-kicker">C++ engine output</p>
+                            <h2 id="metrics-heading">Performance</h2>
+                        </div>
+                        <span class="result-pill" id="result-pill" data-state="idle">Not run</span>
+                    </div>
+
+                    <dl class="metrics-grid">
+                        <div class="metric wide">
+                            <dt>Algorithm</dt>
+                            <dd id="metric-algorithm">—</dd>
+                        </div>
+                        <div class="metric">
+                            <dt>Nodes explored</dt>
+                            <dd id="metric-explored">—</dd>
+                        </div>
+                        <div class="metric">
+                            <dt>Path length</dt>
+                            <dd id="metric-path-length">—</dd>
+                            <span>edges</span>
+                        </div>
+                        <div class="metric wide accent-metric">
+                            <dt>C++ execution time</dt>
+                            <dd id="metric-time">—</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="help-card" aria-labelledby="tips-heading">
+                    <h2 id="tips-heading">Grid controls</h2>
+                    <ul>
+                        <li><strong>Walls:</strong> click or drag to draw and erase.</li>
+                        <li><strong>Endpoints:</strong> select a mode, then choose an open cell.</li>
+                        <li><strong>Keyboard:</strong> focus a cell, use arrow keys, then Enter or Space.</li>
+                    </ul>
+                </section>
+            </aside>
+        </main>
+
+        <footer class="site-footer">
+            <span>C++17 pathfinding engine</span>
+            <span aria-hidden="true">·</span>
+            <span>WebAssembly via Emscripten</span>
+            <span aria-hidden="true">·</span>
+            <span>Four-directional unit-cost grid</span>
+        </footer>
+    </div>
+
+    <script src="../dist/wasm/pathfinding.js"></script>
+    <script src="app.js" defer></script>
+</body>
+</html>

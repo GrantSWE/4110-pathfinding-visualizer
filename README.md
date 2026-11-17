@@ -8,7 +8,7 @@ This project is an interactive, browser-based tool for visualizing and comparing
 
 The motivation is to make the behavior and tradeoffs of common pathfinding algorithms easier to understand. Running multiple algorithms on the same grid connects concepts such as completeness, optimality, uninformed search, and heuristic search to observable results.
 
-> **Project status:** The native C++ engine and tests are complete. Phase 3 integration files now provide Emscripten bindings, a WebAssembly build script, and a minimal browser test page. The WebAssembly build still requires local verification after Emscripten is installed and activated. The full interactive frontend remains future work.
+> **Project status:** Phases 1–4 are complete. The native C++ engine, automated tests, WebAssembly integration, browser parity test, and responsive interactive frontend are implemented and verified. Performance evaluation and final deliverables remain future work.
 
 ## Functionality
 
@@ -26,14 +26,16 @@ The motivation is to make the behavior and tradeoffs of common pathfinding algor
 - Emscripten Embind interface around the existing C++ engine
 - Reproducible WebAssembly build script
 - Minimal browser integration and native-parity test page
+- Responsive dark-themed 20-by-20 grid interface
+- Click-and-drag walls plus movable start and destination cells
+- Animated exploration and final paths with adjustable speed
+- Live C++ execution metrics, algorithm explanations, and no-path feedback
+- Keyboard-accessible grid editing and responsive desktop/mobile layouts
 
 ### Planned
 
-- Local WebAssembly build verification with an activated Emscripten SDK
-- Manual browser verification of the generated module
-- Interactive obstacle and endpoint editing
-- Animated exploration order and final path
-- Browser-based controls and algorithm comparison display
+- Formal correctness and performance evaluation across benchmark grids
+- Final report, screenshots, demonstration video, and submission package
 
 ## Implemented Algorithms
 
@@ -87,6 +89,7 @@ No frontend framework, backend server, database, or Node.js build system is used
 3. The native demo exercises the engine from a command-line program.
 4. Native C++ tests verify grid behavior and algorithm correctness independently of any browser.
 5. The Emscripten binding layer exposes the existing engine to JavaScript without moving pathfinding logic into the frontend.
+6. The vanilla JavaScript frontend manages grid editing, calls the WebAssembly engine, and animates only the returned exploration and path sequences.
 
 ## Repository Structure
 
@@ -109,7 +112,10 @@ No frontend framework, backend server, database, or Node.js build system is used
 ├── scripts/
 │   └── build_wasm.sh
 └── web/
-    └── wasm-test.html      # Minimal integration test, not the final frontend
+    ├── app.js              # Grid state, WASM calls, controls, and animation
+    ├── index.html          # Interactive application
+    ├── style.css           # Responsive dark interface
+    └── wasm-test.html      # Focused WebAssembly parity test
 ```
 
 ## Development Prerequisites
@@ -169,7 +175,7 @@ source ./emsdk_env.sh
 emcc --version
 ```
 
-Run `source /absolute/path/to/emsdk/emsdk_env.sh` in each new terminal before building, or add that command to the appropriate shell startup file after reviewing the SDK instructions. Emscripten was unavailable in the development environment when the Phase 3 files were prepared, so the generated artifacts and browser execution still require verification on a machine with an activated SDK.
+Run `source /absolute/path/to/emsdk/emsdk_env.sh` in each new terminal before building, or add that command to the appropriate shell startup file after reviewing the SDK instructions.
 
 ## JavaScript Binding Contract
 
@@ -220,6 +226,40 @@ http://localhost:8000/web/wasm-test.html
 
 The page runs all four C++ algorithms on the native demo grid, validates returned paths and unique exploration sequences, and compares path lengths and explored-node counts with the native demo. It prints a clear pass, failure, loading error, or runtime error. This page is only an integration test and is not the Phase 4 interactive frontend.
 
+## Interactive Application
+
+Build the WebAssembly module, start the local HTTP server from the repository root, and open:
+
+```text
+http://localhost:8000/web/index.html
+```
+
+The **Run algorithm** button remains disabled until the generated C++ WebAssembly module loads successfully. The engine status badge and message area report loading or execution errors.
+
+### Using the Grid
+
+1. Select BFS, DFS, Dijkstra's algorithm, or A* from the algorithm menu.
+2. Select **Walls**, then click or drag across cells to add obstacles. Begin a drag on an existing wall to erase walls instead.
+3. Select **Start** or **Destination**, then choose an open cell to move that endpoint.
+4. Choose slow, normal, or fast animation speed.
+5. Select **Run algorithm** to call the C++ engine and animate its returned exploration order and path.
+
+Walls cannot overlap endpoints, and the two endpoints cannot overlap each other. Any grid or algorithm change clears stale visualization results. Grid cells support keyboard focus: use arrow keys to move between cells and Enter or Space to apply the active editing mode.
+
+### Controls
+
+- **Reset visualization:** Cancels any active animation and clears explored/path highlights and metrics while preserving walls and endpoints.
+- **Clear grid:** Cancels animation, removes every wall, restores start `(2,2)` and destination `(17,17)`, and clears results.
+- **Animation speed:** Changes only the visualization delay; it does not affect reported C++ execution time.
+
+### Metrics
+
+- **Algorithm:** Selected C++ search implementation.
+- **Path found / no path:** Whether the destination was reachable.
+- **Nodes explored:** Unique expanded nodes reported by the engine.
+- **Path length:** Number of movement edges in the returned path.
+- **C++ execution time:** Search and path-reconstruction time reported by WebAssembly, excluding browser animation.
+
 ## Performance Metrics
 
 - **Execution time:** Time spent inside the C++ search call, excluding future rendering and animation
@@ -228,9 +268,9 @@ The page runs all four C++ algorithms on the native demo grid, validates returne
 
 Execution times are intended for comparative observation rather than strict benchmarking. Native and future WebAssembly timings may differ because they use different execution environments.
 
-## Future Frontend Work
+## Future Evaluation Work
 
-After the prepared Phase 3 integration is built and manually verified, Phase 4 will add the interactive grid, controls, and animations. The current HTML page only exercises the WebAssembly API and displays raw test results.
+Phase 5 will run formal correctness and performance comparisons on consistent grid scenarios. Phase 6 will prepare the report, demonstration video, screenshots, and final submission. Those phases have not started.
 
 ## Acknowledgments
 
