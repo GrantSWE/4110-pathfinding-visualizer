@@ -8,7 +8,7 @@ This project is an interactive, browser-based tool for visualizing and comparing
 
 The motivation is to make the behavior and tradeoffs of common pathfinding algorithms easier to understand. Running multiple algorithms on the same grid connects concepts such as completeness, optimality, uninformed search, and heuristic search to observable results.
 
-> **Project status:** Phases 1–4 are complete. The native C++ engine, automated tests, WebAssembly integration, browser parity test, and responsive interactive frontend are implemented and verified. Performance evaluation and final deliverables remain future work.
+> **Project status:** Phases 1–5 are complete. The native C++ engine, automated tests, WebAssembly integration, responsive frontend, and lightweight correctness and performance evaluation are implemented and verified. The final report, demonstration video, and submission preparation remain future work.
 
 ## Functionality
 
@@ -34,7 +34,6 @@ The motivation is to make the behavior and tradeoffs of common pathfinding algor
 
 ### Planned
 
-- Formal correctness and performance evaluation across benchmark grids
 - Final report, screenshots, demonstration video, and submission package
 
 ## Implemented Algorithms
@@ -266,11 +265,17 @@ Walls cannot overlap endpoints, and the two endpoints cannot overlap each other.
 - **Explored nodes:** Number of unique cells removed from the algorithm frontier and expanded
 - **Path length:** Number of movement edges from start to destination; zero for an unreachable result or when both endpoints are the same
 
-Execution times are intended for comparative observation rather than strict benchmarking. Native and future WebAssembly timings may differ because they use different execution environments.
+Execution times are intended for comparative observation rather than strict benchmarking. Native and WebAssembly timings may differ because they use different execution environments.
 
-## Future Evaluation Work
+## Testing and Evaluation Results
 
-Phase 5 will run formal correctness and performance comparisons on consistent grid scenarios. Phase 6 will prepare the report, demonstration video, screenshots, and final submission. Those phases have not started.
+The native correctness suite passes all 9 scenarios, and CTest reports its registered test target passing. A lightweight evaluation compared all four algorithms on the sample obstacle grid and an empty 20-by-20 grid using 100 measured native runs per algorithm per scenario.
+
+See [`docs/testing-summary.md`](docs/testing-summary.md) for the testing environment, exact measurements, comparison tables, observations, and limitations.
+
+## Remaining Final Deliverables
+
+Phase 6 will prepare the final report, demonstration video, screenshots, and submission package. Those deliverables are not yet complete.
 
 ## Acknowledgments
 

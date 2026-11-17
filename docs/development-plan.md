@@ -1,6 +1,6 @@
 # Development Plan
 
-Phases 1–4 are complete. The repository, native engine, native tests, WebAssembly integration, browser parity checks, and interactive frontend are implemented. Formal evaluation and final deliverables remain future work.
+Phases 1–5 are complete. The repository, native engine, tests, WebAssembly integration, interactive frontend, and lightweight correctness and performance evaluation are implemented. Final deliverables remain future work.
 
 ## Phase 2: C++ Algorithms and Native Tests — Completed
 
@@ -14,9 +14,9 @@ The Embind interface, build script, and browser parity page reuse the tested C++
 
 Implemented the responsive 20-by-20 grid, algorithm and editing controls, click-and-drag obstacles, movable endpoints, cancellation-safe animations, returned C++ metrics, keyboard support, and clear loading/error feedback with HTML, CSS, and vanilla JavaScript.
 
-## Phase 5: Correctness and Performance Evaluation
+## Phase 5: Correctness and Performance Evaluation — Completed
 
-Run the full correctness suite and compare all algorithms on consistent grid scenarios. Record execution time, explored nodes, path length, and notable exploration behavior.
+The full native correctness suite passed. All four algorithms were compared on the sample obstacle grid and an empty grid using repeated measurements of execution time, explored nodes, and path length. Results and limitations are recorded in `docs/testing-summary.md`.
 
 ## Phase 6: Final Deliverables
 
