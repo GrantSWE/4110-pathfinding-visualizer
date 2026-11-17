@@ -4,128 +4,163 @@
 
 ## Project Overview
 
-This project will be an interactive, browser-based tool for visualizing and comparing graph-search algorithms on a fixed 20-by-20 grid. The pathfinding logic will be written in C++17 and compiled to WebAssembly with Emscripten. A lightweight frontend built with HTML, CSS, and vanilla JavaScript will display each algorithm's exploration order, final path, and performance measurements.
+This project is an interactive, browser-based tool for visualizing and comparing graph-search algorithms on a fixed 20-by-20 grid. Its pathfinding engine is written in C++17 and is designed for later compilation to WebAssembly with Emscripten. The future lightweight frontend will use HTML, CSS, and vanilla JavaScript to display each algorithm's exploration order, final path, and performance measurements.
 
-The motivation is to make the behavior and tradeoffs of common pathfinding algorithms easier to understand. Watching the same grid solved by multiple algorithms can connect theoretical concepts such as completeness, optimality, uninformed search, and heuristic search to observable behavior.
+The motivation is to make the behavior and tradeoffs of common pathfinding algorithms easier to understand. Running multiple algorithms on the same grid connects concepts such as completeness, optimality, uninformed search, and heuristic search to observable results.
 
-> **Project status:** Phase 1 repository setup and planning. Algorithms, WebAssembly integration, frontend behavior, and tests are not yet implemented.
+> **Project status:** Phase 2 is implemented. The native C++ pathfinding engine, command-line demo, and automated correctness tests are complete. WebAssembly integration and frontend functionality remain future work.
 
-## Planned Features
+## Functionality
 
-- Fixed 20-by-20 grid
-- Four-directional movement: up, down, left, and right
-- Equal movement cost for every traversable cell
-- Adjustable start and destination positions
-- Click-to-add and click-to-remove obstacles
-- Animated exploration order and final path
-- Selection among BFS, DFS, Dijkstra's algorithm, and A* search
+### Completed
+
+- Fixed 20-by-20 grid with coordinate and index conversion
+- Four-directional movement with equal movement cost
+- Obstacle placement, removal, and bounds checking
+- Configurable start and destination coordinates
+- BFS, DFS, Dijkstra's algorithm, and A* search
+- Exploration order and reconstructed path results
 - Execution time, explored-node count, and path-length metrics
-- Correctness tests and side-by-side algorithm comparisons
+- Native command-line demonstration
+- Dependency-free native correctness and repeatability tests
 
-## Planned Algorithms
+### Planned
+
+- C++ compilation to WebAssembly with Emscripten
+- JavaScript-to-WebAssembly integration
+- Interactive obstacle and endpoint editing
+- Animated exploration order and final path
+- Browser-based controls and algorithm comparison display
+
+## Implemented Algorithms
 
 ### Breadth-First Search (BFS)
 
-BFS explores the grid level by level using a queue. With equal movement costs, it is complete and finds a shortest path in number of grid steps when a path exists.
+BFS uses `std::queue` to explore the grid level by level. It marks cells when they enter the queue, preventing duplicate work. With equal movement costs, BFS is complete and returns a shortest path when one exists.
 
 ### Depth-First Search (DFS)
 
-DFS follows one branch as deeply as possible before backtracking, typically using a stack or recursion. It can demonstrate a very different exploration order from BFS, but it does not guarantee a shortest path.
+DFS uses an explicit `std::stack` and follows one branch before backtracking. Neighbors are pushed in reverse order so expansion follows the grid's documented deterministic order. DFS returns a valid path when reachable but does not guarantee the shortest path.
 
 ### Dijkstra's Algorithm
 
-Dijkstra's algorithm repeatedly expands the unvisited node with the smallest known distance from the start. It guarantees a shortest path for nonnegative edge weights. Because this project's traversable cells have equal cost, its result should match BFS's shortest-path length, although its implementation and exploration behavior will differ.
+Dijkstra's algorithm uses `std::priority_queue` to expand the cell with the smallest known distance from the start. Grid index provides deterministic tie-breaking. It guarantees a shortest path because all movement costs are nonnegative; on this equal-cost grid, its path length matches BFS.
 
 ### A* Search
 
-A* prioritizes nodes using the known distance from the start plus an estimated distance to the destination. This project will use Manhattan distance, which matches four-directional grid movement and does not overestimate the remaining path cost. A* should find a shortest path while often exploring fewer nodes than uninformed searches.
+A* uses `std::priority_queue` and ranks cells by distance from the start plus Manhattan distance to the destination. Additional cost and grid-index fields provide deterministic tie-breaking. Manhattan distance is admissible for four-directional unit-cost movement, so A* returns a shortest path.
+
+All algorithms use the same `Grid`, validate endpoints before searching, record each expanded cell once, and reconstruct successful paths through parent indices.
+
+## Data Structures and Complexity
+
+The grid stores 400 obstacle flags in `std::array<bool, 400>`. Coordinates are converted to row-major indices for constant-time state access. Traversable neighbors are returned in deterministic **up, right, down, left** order.
+
+Let `V` be the number of grid cells and `E` the number of valid neighbor connections. For this project, `V` is always 400 and each cell has at most four outgoing connections.
+
+| Algorithm | Primary structure | Time complexity | Auxiliary space |
+| --- | --- | --- | --- |
+| BFS | `std::queue` | `O(V + E)` | `O(V)` |
+| DFS | `std::stack` | `O(V + E)` | `O(V)` |
+| Dijkstra | `std::priority_queue` | `O((V + E) log V)` | `O(V + E)` worst case |
+| A* | `std::priority_queue` | `O((V + E) log V)` worst case | `O(V + E)` worst case |
+
+The fixed grid keeps all practical memory use small. A* may explore fewer cells than uninformed algorithms, but its worst case remains similar to Dijkstra's algorithm.
 
 ## Technology Stack
 
 - **Algorithm implementation:** C++17
-- **Build configuration:** CMake and CTest
-- **WebAssembly toolchain:** Emscripten
-- **Frontend:** HTML5, CSS3, and vanilla JavaScript
-- **Runtime environment:** Modern desktop web browser
+- **Build and test configuration:** CMake and CTest
+- **Future WebAssembly toolchain:** Emscripten
+- **Future frontend:** HTML5, CSS3, and vanilla JavaScript
 - **Version control:** Git and GitHub
 
-No frontend framework, backend server, database, or Node.js build system is planned.
+No frontend framework, backend server, database, or Node.js build system is used.
 
-## Proposed Architecture
+## Architecture
 
-The project will keep the algorithm logic separate from presentation concerns:
-
-1. The C++ layer will represent the grid, run a selected algorithm, and return structured results including exploration order, final path, and metrics.
-2. Emscripten bindings will expose a small C++ interface to JavaScript through WebAssembly.
-3. JavaScript will manage user input, call the WebAssembly module, and schedule animations.
-4. HTML and CSS will define the controls, grid, metric display, and visual states.
-5. Native C++ tests will verify algorithm correctness independently of the browser interface.
-
-This separation will allow the algorithms to be tested with a native compiler before WebAssembly integration.
+1. `Grid` owns obstacle state and provides validated grid operations without user-interface dependencies.
+2. The pathfinding module accepts a shared grid and endpoints, then returns a `PathfindingResult` containing search status, exploration order, path, and metrics.
+3. The native demo exercises the engine from a command-line program.
+4. Native C++ tests verify grid behavior and algorithm correctness independently of any browser.
+5. A future Emscripten binding layer will expose the existing engine to JavaScript without moving pathfinding logic into the frontend.
 
 ## Repository Structure
 
 ```text
 .
-├── CMakeLists.txt          # C++17 and future CTest configuration
-├── README.md               # Project overview and setup notes
+├── CMakeLists.txt
+├── README.md
 ├── docs/
-│   ├── development-plan.md # Planned project phases
-│   └── screenshots/        # Images for documentation and the final report
-├── scripts/                # Future build and utility scripts
-├── src/                    # Future C++ source and header files
-├── tests/                  # Future native correctness tests
-└── web/                    # Future HTML, CSS, JavaScript, and web assets
+│   ├── development-plan.md
+│   └── screenshots/
+├── scripts/
+├── src/
+│   ├── grid.cpp
+│   ├── grid.h
+│   ├── main.cpp
+│   ├── pathfinding.cpp
+│   └── pathfinding.h
+├── tests/
+│   └── test_pathfinding.cpp
+└── web/                    # Reserved for future frontend work
 ```
-
-Empty project directories contain `.gitkeep` files so Git can preserve the planned structure before implementation begins.
 
 ## Development Prerequisites
 
-The following tools will be required in later phases:
-
-- A compiler with C++17 support, such as Clang, GCC, or MSVC
+- A compiler with C++17 support, such as Apple Clang, Clang, GCC, or MSVC
 - CMake 3.16 or newer
-- Emscripten SDK (`emcc`) for WebAssembly builds
-- A modern browser with WebAssembly support
-- Git for version control
+- A terminal for building and running the native targets
+- Emscripten SDK and a modern WebAssembly-capable browser beginning in Phase 3
 
-## Build and Execution
+## Native Build
 
-> **Pending implementation and verification.** There are currently no application or test targets because source files have not been created. The final native and WebAssembly commands will be documented only after they have been implemented and tested.
+From the repository root, configure and build the project:
 
-The intended workflows are:
+```sh
+cmake -S . -B build
+cmake --build build
+```
 
-- Configure and build native C++ targets with CMake.
-- Run native correctness tests through CTest.
-- Configure Emscripten through its CMake toolchain and generate browser-ready WebAssembly output.
-- Serve the `web/` content from a local HTTP server and open it in a browser.
+The build creates the reusable `pathfinding_engine` library, `pathfinding_demo` executable, and `pathfinding_tests` executable.
 
-Exact commands are intentionally deferred to avoid documenting an unverified build process.
+## Command-Line Demo
 
-## Planned Testing and Evaluation
+After building, run:
 
-Correctness testing will begin with native C++ tests and will cover:
+```sh
+./build/pathfinding_demo
+```
 
-- Empty grids with direct paths
-- Grids with obstacles and required detours
-- Unreachable destinations
-- Start and destination positions at boundaries and corners
-- Start equal to destination
-- Path validity, including adjacent moves and obstacle avoidance
-- Expected shortest-path lengths for BFS, Dijkstra's algorithm, and A*
-- Valid, though not necessarily shortest, DFS paths
-- Consistent results between native and WebAssembly execution
+The demo creates one obstacle grid, runs all four algorithms, and prints whether a path was found, explored-node count, path length, and C++ execution time in milliseconds.
 
-Algorithm evaluation will run each implementation on the same predefined and user-created grids. Results will be compared for correctness, exploration behavior, and measured performance. Timing tests will be repeated when practical to reduce the effect of one-time runtime noise.
+## Automated Tests
+
+Run the registered test through CTest:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+The tests cover empty and obstructed grids, required detours, unreachable destinations, identical endpoints, invalid or blocked endpoints, boundary routes, path validity, shortest-path agreement, duplicate exploration prevention, and deterministic repeatability. An independent BFS implementation in the test file provides reference shortest-path lengths.
+
+The test executable can also be run directly for individual scenario output:
+
+```sh
+./build/pathfinding_tests
+```
 
 ## Performance Metrics
 
-- **Execution time:** Time spent running the algorithm, measured separately from animation time when possible
-- **Explored nodes:** Number of grid cells processed during the search
-- **Path length:** Number of moves from the start cell to the destination cell; reported as unavailable when no path exists
+- **Execution time:** Time spent inside the C++ search call, excluding future rendering and animation
+- **Explored nodes:** Number of unique cells removed from the algorithm frontier and expanded
+- **Path length:** Number of movement edges from start to destination; zero for an unreachable result or when both endpoints are the same
 
-The final analysis will explain that browser and native timings may not be directly comparable because WebAssembly and native builds use different execution environments.
+Execution times are intended for comparative observation rather than strict benchmarking. Native and future WebAssembly timings may differ because they use different execution environments.
+
+## Future WebAssembly and Frontend Work
+
+Phase 3 will add Emscripten compilation and a small JavaScript-facing binding layer. Phase 4 will add the interactive grid and animations. No WebAssembly bindings, HTML, CSS, or JavaScript functionality are implemented yet.
 
 ## Acknowledgments
 

@@ -8,5 +8,23 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
 
-# Build targets will be added after source files are implemented in Phase 2.
+add_library(pathfinding_engine
+    src/grid.cpp
+    src/pathfinding.cpp
+)
 
+target_include_directories(pathfinding_engine PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_features(pathfinding_engine PUBLIC cxx_std_17)
+
+add_executable(pathfinding_demo src/main.cpp)
+target_link_libraries(pathfinding_demo PRIVATE pathfinding_engine)
+
+if(BUILD_TESTING)
+    add_executable(pathfinding_tests tests/test_pathfinding.cpp)
+    target_link_libraries(pathfinding_tests PRIVATE pathfinding_engine)
+
+    add_test(NAME pathfinding_tests COMMAND pathfinding_tests)
+endif()
