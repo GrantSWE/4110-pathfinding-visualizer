@@ -8,7 +8,7 @@ This project is an interactive, browser-based tool for visualizing and comparing
 
 The motivation is to make the behavior and tradeoffs of common pathfinding algorithms easier to understand. Running multiple algorithms on the same grid connects concepts such as completeness, optimality, uninformed search, and heuristic search to observable results.
 
-> **Project status:** Phase 2 is implemented. The native C++ pathfinding engine, command-line demo, and automated correctness tests are complete. WebAssembly integration and frontend functionality remain future work.
+> **Project status:** The native C++ engine and tests are complete. Phase 3 integration files now provide Emscripten bindings, a WebAssembly build script, and a minimal browser test page. The WebAssembly build still requires local verification after Emscripten is installed and activated. The full interactive frontend remains future work.
 
 ## Functionality
 
@@ -23,11 +23,14 @@ The motivation is to make the behavior and tradeoffs of common pathfinding algor
 - Execution time, explored-node count, and path-length metrics
 - Native command-line demonstration
 - Dependency-free native correctness and repeatability tests
+- Emscripten Embind interface around the existing C++ engine
+- Reproducible WebAssembly build script
+- Minimal browser integration and native-parity test page
 
 ### Planned
 
-- C++ compilation to WebAssembly with Emscripten
-- JavaScript-to-WebAssembly integration
+- Local WebAssembly build verification with an activated Emscripten SDK
+- Manual browser verification of the generated module
 - Interactive obstacle and endpoint editing
 - Animated exploration order and final path
 - Browser-based controls and algorithm comparison display
@@ -71,7 +74,7 @@ The fixed grid keeps all practical memory use small. A* may explore fewer cells 
 
 - **Algorithm implementation:** C++17
 - **Build and test configuration:** CMake and CTest
-- **Future WebAssembly toolchain:** Emscripten
+- **WebAssembly toolchain:** Emscripten
 - **Future frontend:** HTML5, CSS3, and vanilla JavaScript
 - **Version control:** Git and GitHub
 
@@ -83,7 +86,7 @@ No frontend framework, backend server, database, or Node.js build system is used
 2. The pathfinding module accepts a shared grid and endpoints, then returns a `PathfindingResult` containing search status, exploration order, path, and metrics.
 3. The native demo exercises the engine from a command-line program.
 4. Native C++ tests verify grid behavior and algorithm correctness independently of any browser.
-5. A future Emscripten binding layer will expose the existing engine to JavaScript without moving pathfinding logic into the frontend.
+5. The Emscripten binding layer exposes the existing engine to JavaScript without moving pathfinding logic into the frontend.
 
 ## Repository Structure
 
@@ -94,16 +97,19 @@ No frontend framework, backend server, database, or Node.js build system is used
 ├── docs/
 │   ├── development-plan.md
 │   └── screenshots/
-├── scripts/
 ├── src/
 │   ├── grid.cpp
 │   ├── grid.h
 │   ├── main.cpp
 │   ├── pathfinding.cpp
-│   └── pathfinding.h
+│   ├── pathfinding.h
+│   └── wasm_bindings.cpp
 ├── tests/
 │   └── test_pathfinding.cpp
-└── web/                    # Reserved for future frontend work
+├── scripts/
+│   └── build_wasm.sh
+└── web/
+    └── wasm-test.html      # Minimal integration test, not the final frontend
 ```
 
 ## Development Prerequisites
@@ -111,7 +117,7 @@ No frontend framework, backend server, database, or Node.js build system is used
 - A compiler with C++17 support, such as Apple Clang, Clang, GCC, or MSVC
 - CMake 3.16 or newer
 - A terminal for building and running the native targets
-- Emscripten SDK and a modern WebAssembly-capable browser beginning in Phase 3
+- Emscripten SDK and a modern WebAssembly-capable browser for Phase 3
 
 ## Native Build
 
@@ -150,6 +156,70 @@ The test executable can also be run directly for individual scenario output:
 ./build/pathfinding_tests
 ```
 
+## Emscripten Setup on macOS
+
+Emscripten is not installed automatically by this project. Follow the [official Emscripten SDK instructions](https://emscripten.org/docs/getting_started/downloads.html). One standard installation sequence is:
+
+```sh
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+emcc --version
+```
+
+Run `source /absolute/path/to/emsdk/emsdk_env.sh` in each new terminal before building, or add that command to the appropriate shell startup file after reviewing the SDK instructions. Emscripten was unavailable in the development environment when the Phase 3 files were prepared, so the generated artifacts and browser execution still require verification on a machine with an activated SDK.
+
+## JavaScript Binding Contract
+
+The generated module exposes:
+
+```js
+module.runPathfinding(algorithmId, startIndex, destinationIndex, blockedCellIndices)
+```
+
+- `algorithmId`: `0` for BFS, `1` for DFS, `2` for Dijkstra, or `3` for A*.
+- Cell values are row-major indices from `0` through `399`, calculated as `row * 20 + column`.
+- `blockedCellIndices` is a `module.IntVector` populated with zero or more cell indices.
+- Invalid algorithms, out-of-range indices, and blocked endpoints return `validInput: false` with an `errorMessage` and do not run a search.
+- Valid results include `found`, `explorationOrder`, `path`, `pathLength`, `exploredNodes`, and `executionTimeMilliseconds`.
+
+`explorationOrder` and `path` are also row-major cell indices. Embind vector wrappers should be released with `.delete()` after their contents are copied.
+
+## WebAssembly Build
+
+After activating Emscripten, run from the repository root:
+
+```sh
+./scripts/build_wasm.sh
+```
+
+The script compiles `grid.cpp`, `pathfinding.cpp`, and `wasm_bindings.cpp` into:
+
+```text
+dist/wasm/pathfinding.js
+dist/wasm/pathfinding.wasm
+```
+
+The entire `dist/` directory is intentionally excluded from Git because these files are generated build artifacts.
+
+## Browser Integration Test
+
+Browsers should load WebAssembly over HTTP rather than directly from `file://`. After a successful WebAssembly build, start a local static server from the repository root:
+
+```sh
+python3 -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/web/wasm-test.html
+```
+
+The page runs all four C++ algorithms on the native demo grid, validates returned paths and unique exploration sequences, and compares path lengths and explored-node counts with the native demo. It prints a clear pass, failure, loading error, or runtime error. This page is only an integration test and is not the Phase 4 interactive frontend.
+
 ## Performance Metrics
 
 - **Execution time:** Time spent inside the C++ search call, excluding future rendering and animation
@@ -158,9 +228,9 @@ The test executable can also be run directly for individual scenario output:
 
 Execution times are intended for comparative observation rather than strict benchmarking. Native and future WebAssembly timings may differ because they use different execution environments.
 
-## Future WebAssembly and Frontend Work
+## Future Frontend Work
 
-Phase 3 will add Emscripten compilation and a small JavaScript-facing binding layer. Phase 4 will add the interactive grid and animations. No WebAssembly bindings, HTML, CSS, or JavaScript functionality are implemented yet.
+After the prepared Phase 3 integration is built and manually verified, Phase 4 will add the interactive grid, controls, and animations. The current HTML page only exercises the WebAssembly API and displays raw test results.
 
 ## Acknowledgments
 

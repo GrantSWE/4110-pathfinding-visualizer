@@ -1,14 +1,14 @@
 # Development Plan
 
-Phase 1 established the repository structure, build configuration, and initial documentation. Phase 2 completed the native C++ pathfinding engine and correctness tests. WebAssembly and frontend work have not started.
+Phase 1 established the repository structure and documentation. Phase 2 completed the native C++ engine and tests. Phase 3 integration files are prepared, but the WebAssembly build and browser test remain pending until Emscripten is installed and activated.
 
 ## Phase 2: C++ Algorithms and Native Tests — Completed
 
 Implemented BFS, DFS, Dijkstra's algorithm, and A* in C++17 with shared grid and result structures. Native correctness tests cover representative and edge-case grids.
 
-## Phase 3: WebAssembly Integration
+## Phase 3: WebAssembly Integration — Prepared, Verification Pending
 
-Compile the tested C++ code to WebAssembly with Emscripten. Expose a small interface for JavaScript and verify that browser results match native results.
+An Embind interface, build script, and minimal browser parity page now reuse the tested C++ engine. Install and activate Emscripten, build the generated JavaScript and WebAssembly artifacts, then verify that browser results match the native demo.
 
 ## Phase 4: Interactive Frontend
 

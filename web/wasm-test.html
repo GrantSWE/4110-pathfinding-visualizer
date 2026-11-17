@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pathfinding WebAssembly Integration Test</title>
+</head>
+<body>
+    <main>
+        <h1>Pathfinding WebAssembly Integration Test</h1>
+        <p>
+            This page runs the four C++ algorithms on the same predefined grid used by the
+            native command-line demo. Cell indices use <code>row * 20 + column</code>.
+        </p>
+        <p id="status">Loading WebAssembly module...</p>
+        <pre id="results" aria-live="polite"></pre>
+    </main>
+
+    <script src="../dist/wasm/pathfinding.js"></script>
+    <script>
+        const statusElement = document.getElementById("status");
+        const resultsElement = document.getElementById("results");
+
+        const algorithms = [
+            { id: 0, name: "BFS", expectedPathLength: 30, expectedExploredNodes: 363 },
+            { id: 1, name: "DFS", expectedPathLength: 42, expectedExploredNodes: 43 },
+            { id: 2, name: "Dijkstra", expectedPathLength: 30, expectedExploredNodes: 363 },
+            { id: 3, name: "A*", expectedPathLength: 30, expectedExploredNodes: 43 },
+        ];
+
+        const toIndex = (row, column) => row * 20 + column;
+
+        function createDemoObstacles() {
+            const blocked = [];
+            for (let row = 1; row < 18; row += 1) {
+                if (row !== 9) {
+                    blocked.push(toIndex(row, 8));
+                }
+            }
+            for (let column = 8; column < 19; column += 1) {
+                if (column !== 14) {
+                    blocked.push(toIndex(13, column));
+                }
+            }
+            return blocked;
+        }
+
+        function copyVector(vector) {
+            const values = [];
+            for (let index = 0; index < vector.size(); index += 1) {
+                values.push(vector.get(index));
+            }
+            vector.delete();
+            return values;
+        }
+
+        function validatePath(path, startIndex, destinationIndex, blockedCells) {
+            if (path.length === 0 || path[0] !== startIndex || path.at(-1) !== destinationIndex) {
+                return false;
+            }
+
+            const blocked = new Set(blockedCells);
+            for (let index = 0; index < path.length; index += 1) {
+                if (blocked.has(path[index])) {
+                    return false;
+                }
+                if (index > 0) {
+                    const previousRow = Math.floor(path[index - 1] / 20);
+                    const previousColumn = path[index - 1] % 20;
+                    const currentRow = Math.floor(path[index] / 20);
+                    const currentColumn = path[index] % 20;
+                    const distance = Math.abs(previousRow - currentRow) +
+                        Math.abs(previousColumn - currentColumn);
+                    if (distance !== 1) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        async function runIntegrationTest() {
+            if (typeof createPathfindingModule !== "function") {
+                throw new Error(
+                    "Generated module loader was not found. Run scripts/build_wasm.sh before serving this page."
+                );
+            }
+
+            const module = await createPathfindingModule({
+                locateFile: (fileName) => `../dist/wasm/${fileName}`,
+            });
+            const startIndex = toIndex(2, 2);
+            const destinationIndex = toIndex(17, 17);
+            const blockedCells = createDemoObstacles();
+            const output = [];
+            let allPassed = true;
+
+            for (const algorithm of algorithms) {
+                const blockedVector = new module.IntVector();
+                blockedCells.forEach((cellIndex) => blockedVector.push_back(cellIndex));
+
+                const result = module.runPathfinding(
+                    algorithm.id,
+                    startIndex,
+                    destinationIndex,
+                    blockedVector
+                );
+                blockedVector.delete();
+
+                const explorationOrder = copyVector(result.explorationOrder);
+                const path = copyVector(result.path);
+                const uniqueExploration = new Set(explorationOrder).size === explorationOrder.length;
+                const passed = result.validInput && result.found &&
+                    result.pathLength === algorithm.expectedPathLength &&
+                    result.exploredNodes === algorithm.expectedExploredNodes &&
+                    result.exploredNodes === explorationOrder.length &&
+                    uniqueExploration &&
+                    validatePath(path, startIndex, destinationIndex, blockedCells);
+                allPassed = allPassed && passed;
+
+                output.push({
+                    algorithm: algorithm.name,
+                    passed,
+                    validInput: result.validInput,
+                    errorMessage: result.errorMessage,
+                    found: result.found,
+                    exploredNodes: result.exploredNodes,
+                    pathLength: result.pathLength,
+                    executionTimeMilliseconds: result.executionTimeMilliseconds,
+                    explorationOrder,
+                    path,
+                });
+            }
+
+            const emptyBlockedVector = new module.IntVector();
+            const invalidAlgorithmResult = module.runPathfinding(
+                99,
+                startIndex,
+                destinationIndex,
+                emptyBlockedVector
+            );
+            emptyBlockedVector.delete();
+            copyVector(invalidAlgorithmResult.explorationOrder);
+            copyVector(invalidAlgorithmResult.path);
+
+            const blockedEndpointVector = new module.IntVector();
+            blockedEndpointVector.push_back(startIndex);
+            const blockedEndpointResult = module.runPathfinding(
+                0,
+                startIndex,
+                destinationIndex,
+                blockedEndpointVector
+            );
+            blockedEndpointVector.delete();
+            copyVector(blockedEndpointResult.explorationOrder);
+            copyVector(blockedEndpointResult.path);
+
+            const validationPassed = !invalidAlgorithmResult.validInput &&
+                invalidAlgorithmResult.errorMessage.length > 0 &&
+                !blockedEndpointResult.validInput &&
+                blockedEndpointResult.errorMessage.length > 0;
+            allPassed = allPassed && validationPassed;
+            output.push({
+                validationChecksPassed: validationPassed,
+                invalidAlgorithmError: invalidAlgorithmResult.errorMessage,
+                blockedEndpointError: blockedEndpointResult.errorMessage,
+            });
+
+            statusElement.textContent = allPassed
+                ? "PASS: WebAssembly results match the native demo expectations."
+                : "FAIL: One or more WebAssembly results did not match native expectations.";
+            resultsElement.textContent = JSON.stringify(output, null, 2);
+        }
+
+        runIntegrationTest().catch((error) => {
+            statusElement.textContent = "ERROR: WebAssembly integration test could not run.";
+            resultsElement.textContent = error instanceof Error ? error.stack : String(error);
+            console.error(error);
+        });
+    </script>
+</body>
+</html>
