@@ -8,7 +8,7 @@ This project is an interactive, browser-based tool for visualizing and comparing
 
 The motivation is to make the behavior and tradeoffs of common pathfinding algorithms easier to understand. Running multiple algorithms on the same grid connects concepts such as completeness, optimality, uninformed search, and heuristic search to observable results.
 
-> **Project status:** Phases 1–5 are complete. The native C++ engine, automated tests, WebAssembly integration, responsive frontend, and lightweight correctness and performance evaluation are implemented and verified. The final report, demonstration video, and submission preparation remain future work.
+> **Project status:** Phases 1–5 are complete. The native C++ engine, automated tests, WebAssembly integration, responsive frontend, and lightweight correctness and performance evaluation are implemented and verified.
 
 ## Functionality
 
@@ -275,4 +275,4 @@ Phase 6 will prepare the final report, demonstration video, screenshots, and sub
 
 ## Acknowledgments
 
-External references, tutorials, libraries, code examples, and assets used during development will be credited here and in the final report as appropriate. Any AI-assisted planning, documentation, code generation, debugging, or review will also be disclosed. AI-generated material will be reviewed, tested, and revised by the project author, who remains responsible for the final work and its correctness.
+External references, tutorials, libraries, code examples, and assets used during development will be credited in the final report as appropriate. Any AI-assisted planning, documentation, code generation, debugging, or review will also be disclosed. AI-generated material will be reviewed, tested, and revised by me (GrantSWE), the project author, and I will remain responsible for the final work and its correctness.
