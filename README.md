@@ -269,10 +269,6 @@ The native correctness suite passes all 9 scenarios, and CTest reports its regis
 
 See [`docs/testing-summary.md`](docs/testing-summary.md) for the testing environment, exact measurements, comparison tables, observations, and limitations.
 
-## Remaining Final Deliverables
-
-Phase 6 will prepare the final report, demonstration video, screenshots, and submission package. Those deliverables are not yet complete.
-
 ## Acknowledgments
 
 External references, tutorials, libraries, code examples, and assets used during development will be credited in the final report as appropriate. Any AI-assisted planning, documentation, code generation, debugging, or review will also be disclosed. AI-generated material will be reviewed, tested, and revised by me (GrantSWE), the project author, and I will remain responsible for the final work and its correctness.
