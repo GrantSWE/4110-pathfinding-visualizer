@@ -32,10 +32,6 @@ The motivation is to make the behavior and tradeoffs of common pathfinding algor
 - Live C++ execution metrics, algorithm explanations, and no-path feedback
 - Keyboard-accessible grid editing and responsive desktop/mobile layouts
 
-### Planned
-
-- Final report, screenshots, demonstration video, and submission package
-
 ## Implemented Algorithms
 
 ### Breadth-First Search (BFS)
